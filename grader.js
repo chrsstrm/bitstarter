@@ -2,7 +2,8 @@
 
 var fs = require('fs'),
  program = require('commander'),
- cheerio = require('cheerio'), 
+ cheerio = require('cheerio'),
+ rest = require('restler'), 
  HTMLFILE_DEFAULT = "index.html", 
  CHECKSFILE_DEFAULT = "checks.json";
 
@@ -35,6 +36,17 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
+var checkHtmlUrl = function( url, checks, onComplete ) {
+    rest.get(url).on('complete', function(result) {
+	if (result instanceof Error ) {
+	    console.log("Error retrieving %s.", url);
+	    process.exit(1);
+	} else {
+	    onComplete( checkHtml(result, checks));
+	}
+    });
+};
+
 var clone = function(fn) {
     return fn.bind({});
 };
@@ -44,6 +56,7 @@ if (require.main == module) {
     program
       .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
       .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+      .option('-u, --url <url)', 'URL to check')
       .parse(process.argv);
     var checkJson = checkHtmlFile(program.file, program.checks);
     var outJson = JSON.stringify(checkJson, null, 4);
